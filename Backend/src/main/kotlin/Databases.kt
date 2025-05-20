@@ -31,10 +31,13 @@ fun Application.configureDatabases() {
     val jwtSecret = environment.config.propertyOrNull("jwt.secret")?.getString() ?: ""
 
     routing {
+        get("/") {
+            call.respond("Working!!")
+        }
         //Register
         post("/auth/register") {
             val registerRequest = call.receive<UserSchema>()
-            val existingUser = userService.findByUsername(registerRequest.username)
+            val existingUser = userService.findByUsername(registerRequest.email)
             if (existingUser != null) {
                 call.respond(HttpStatusCode.Conflict, "User already exists")
                 return@post
@@ -45,7 +48,7 @@ fun Application.configureDatabases() {
         //Login
         post("/auth/login") {
             val loginRequest = call.receive<UserSchema>()
-            val user = userService.findByUsername(loginRequest.username)
+            val user = userService.findByUsername(loginRequest.email)
             if (user == null) {
                 call.respond(HttpStatusCode.Unauthorized, "Invalid credentials")
                 return@post
@@ -54,7 +57,7 @@ fun Application.configureDatabases() {
                 val token = JWT.create()
                     .withAudience(jwtAudience)
                     .withIssuer(jwtDomain)
-                    .withClaim("username", user.username)
+                    .withClaim("email", user.email)
                     .withExpiresAt(Date(System.currentTimeMillis() + 60_000 * 60)) // 1 hour
                     .sign(Algorithm.HMAC256(jwtSecret))
                 call.respond(mapOf("token" to token))

@@ -11,7 +11,7 @@ import org.bson.Document
 import org.bson.types.ObjectId
 
 @Serializable
-data class UserSchema(val username: String, val password: String) {
+data class UserSchema(val email: String, val password: String) {
     fun toDocument(): Document = Document.parse(Json.encodeToString(this))
 
     companion object {
