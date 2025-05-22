@@ -41,7 +41,7 @@ fun MainController(innerPadding: PaddingValues) {
     NavHost(
         modifier = Modifier.padding(innerPadding),
         navController = navController,
-        startDestination = "login"
+        startDestination = if (Session.token.isNullOrEmpty()) "login" else "home"
     ) {
         composable("login") { LoginScreen(navController) }
         composable("register") { RegisterScreen(navController) }

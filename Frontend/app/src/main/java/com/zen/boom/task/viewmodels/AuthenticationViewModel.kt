@@ -3,13 +3,11 @@ package com.zen.boom.task.viewmodels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.JsonObject
+import com.zen.boom.task.Session
 import com.zen.boom.task.network.Resource
 import com.zen.boom.task.network.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
 
 class AuthenticationViewModel : ViewModel() {
 
@@ -19,70 +17,56 @@ class AuthenticationViewModel : ViewModel() {
     private val _registerMutableStateFlow = MutableStateFlow<Resource<JsonObject>>(Resource.Idle())
     val registerMutableStateFlow = _registerMutableStateFlow
 
-    fun register(email: String, password: String) {
-        _registerMutableStateFlow.value = Resource.Loading()
+    fun register(name: String, email: String, password: String) {
         viewModelScope.launch {
-            val body = JsonObject()
-            body.addProperty("email", email)
-            body.addProperty("password", password)
-            RetrofitClient.apiService.register(body).enqueue(object : Callback<JsonObject> {
-                override fun onResponse(
-                    call: Call<JsonObject?>,
-                    response: Response<JsonObject?>
-                ) {
-                    if (response.isSuccessful) {
-                        val data = response.body()
-                        if (null != data) {
-                            _registerMutableStateFlow.value = Resource.Success(data)
-                        } else {
-                            _registerMutableStateFlow.value = Resource.Error("Registration failed")
-                        }
+            _registerMutableStateFlow.value = Resource.Loading()
+            val body = JsonObject().apply {
+                addProperty("email", email)
+                addProperty("name", name)
+                addProperty("password", password)
+            }
+            try {
+                val response = RetrofitClient.apiService.register(body)
+                if (response.isSuccessful) {
+                    val data = response.body()
+                    if (data != null) {
+                        _registerMutableStateFlow.value = Resource.Success(data)
                     } else {
                         _registerMutableStateFlow.value = Resource.Error("Registration failed")
                     }
-                }
-
-                override fun onFailure(
-                    call: Call<JsonObject?>,
-                    t: Throwable
-                ) {
+                } else {
                     _registerMutableStateFlow.value = Resource.Error("Registration failed")
                 }
-            })
+            } catch (e: Exception) {
+                _registerMutableStateFlow.value = Resource.Error("Registration failed")
+            }
         }
     }
 
 
     fun login(email: String, password: String) {
-        _loginMutableStateFlow.value = Resource.Loading()
         viewModelScope.launch {
-            val body = JsonObject()
-            body.addProperty("email", email)
-            body.addProperty("password", password)
-            RetrofitClient.apiService.login(body).enqueue(object : Callback<JsonObject> {
-                override fun onResponse(
-                    call: Call<JsonObject?>,
-                    response: Response<JsonObject?>
-                ) {
-                    if (response.isSuccessful) {
-                        val data = response.body()
-                        if (data != null) {
-                            _loginMutableStateFlow.value = Resource.Success(data)
-                        } else {
-                            _loginMutableStateFlow.value = Resource.Error("Login failed")
-                        }
+            _loginMutableStateFlow.value = Resource.Loading()
+            val body = JsonObject().apply {
+                addProperty("email", email)
+                addProperty("password", password)
+            }
+            try {
+                val request = RetrofitClient.apiService.login(body)
+                if (request.isSuccessful) {
+                    val data = request.body()
+                    if (data != null) {
+                        Session.token = data.get("token").asString
+                        _loginMutableStateFlow.value = Resource.Success(data)
                     } else {
                         _loginMutableStateFlow.value = Resource.Error("Login failed")
                     }
-                }
-
-                override fun onFailure(
-                    call: Call<JsonObject?>,
-                    t: Throwable
-                ) {
+                } else {
                     _loginMutableStateFlow.value = Resource.Error("Login failed")
                 }
-            })
+            } catch (e: Exception) {
+                _loginMutableStateFlow.value = Resource.Error("Login failed")
+            }
         }
     }
 }

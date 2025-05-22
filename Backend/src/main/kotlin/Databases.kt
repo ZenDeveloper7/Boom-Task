@@ -2,6 +2,7 @@ package com.zen.boom
 
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import com.google.gson.Gson
 import com.mongodb.ConnectionString
 import com.mongodb.MongoClientSettings
 import com.mongodb.ServerApi
@@ -24,10 +25,10 @@ import java.util.Date
 fun Application.configureDatabases() {
     val mongoDatabase = connectToMongoDB()
     val userService = UserService(mongoDatabase)
+    val mediaService = MediaService(mongoDatabase)
 
     val jwtAudience = environment.config.propertyOrNull("jwt.audience")?.getString() ?: ""
     val jwtDomain = environment.config.propertyOrNull("jwt.domain")?.getString() ?: ""
-    val jwtRealm = environment.config.propertyOrNull("jwt.realm")?.getString() ?: ""
     val jwtSecret = environment.config.propertyOrNull("jwt.secret")?.getString() ?: ""
 
     routing {
@@ -37,7 +38,7 @@ fun Application.configureDatabases() {
         //Register
         post("/auth/register") {
             val registerRequest = call.receive<UserSchema>()
-            val existingUser = userService.findByUsername(registerRequest.email)
+            val existingUser = userService.findByEmail(registerRequest.email)
             if (existingUser != null) {
                 call.respond(HttpStatusCode.Conflict, "User already exists")
                 return@post
@@ -47,10 +48,10 @@ fun Application.configureDatabases() {
         }
         //Login
         post("/auth/login") {
-            val loginRequest = call.receive<UserSchema>()
-            val user = userService.findByUsername(loginRequest.email)
+            val loginRequest = call.receive<LoginSchema>()
+            val user = userService.findByEmail(loginRequest.email)
             if (user == null) {
-                call.respond(HttpStatusCode.Unauthorized, "Invalid credentials")
+                call.respond(HttpStatusCode.Unauthorized, "User Not Found")
                 return@post
             }
             if (loginRequest.password == user.password) {
@@ -71,19 +72,92 @@ fun Application.configureDatabases() {
                 val principal = call.principal<JWTPrincipal>()
                 principal?.let {
                     val expiresAt = principal.payload.expiresAt
-
                     val isExpired = expiresAt.before(Date())
-                    val timeRemaining = expiresAt.time - System.currentTimeMillis()
 
-                    call.respond(
-                        mapOf(
-                            "expires_at" to expiresAt,
-                            "is_expired" to isExpired,
-                            "milliseconds_remaining" to timeRemaining
-                        )
-                    )
+                    if (isExpired) {
+                        call.respond(HttpStatusCode.Unauthorized, "Token expired")
+                        return@get
+                    }
+
+                    val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
+                    val pageSize = call.request.queryParameters["pageSize"]?.toIntOrNull() ?: 10
+
+                    val videos = mediaService.getAllVideos(page, pageSize)
+                    call.respond(HttpStatusCode.OK, videos)
                 } ?: run {
-                    call.respond("Unauthorized")
+                    call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+                }
+            }
+        }
+
+        authenticate("auth-jwt") {
+            post("/upload") {
+                val principal = call.principal<JWTPrincipal>()
+                principal?.let {
+                    val expiresAt = principal.payload.expiresAt
+                    val isExpired = expiresAt.before(Date())
+                    if (!isExpired) {
+                        val userEmail = principal.payload.getClaim("email").toString()
+                        val metadata = call.receive<MediaSchema>()
+                        if (userEmail == metadata.metadata.uploadedBy) {
+                            mediaService.upload(metadata)
+                            call.respond(HttpStatusCode.Created, "Uploaded successfully")
+                        } else {
+                            call.respond(HttpStatusCode.Unauthorized, "Uploaded by wrong person")
+                        }
+                    } else {
+                        call.respond(HttpStatusCode.Unauthorized, "Token expired")
+                    }
+                } ?: run {
+                    call.respond(HttpStatusCode.Unauthorized, "Principal Not Found")
+                }
+            }
+        }
+
+        authenticate("auth-jwt") {
+            post("/like") {
+                val principal = call.principal<JWTPrincipal>()
+                principal?.let {
+                    val expiresAt = principal.payload.expiresAt
+                    val isExpired = expiresAt.before(Date())
+                    if (!isExpired) {
+                        val userEmail = principal.payload.getClaim("email").toString()
+                        val like = call.receive<LikeAndViewSchema>()
+                        if (userEmail == like.userId) {
+                            mediaService.like(like)
+                            call.respond(HttpStatusCode.Created, "Liked successfully")
+                        } else {
+                            call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+                        }
+                    } else {
+                        call.respond(HttpStatusCode.Unauthorized, "Token expired")
+                    }
+                } ?: run {
+                    call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+                }
+            }
+        }
+
+        authenticate("auth-jwt") {
+            post("/view") {
+                val principal = call.principal<JWTPrincipal>()
+                principal?.let {
+                    val expiresAt = principal.payload.expiresAt
+                    val isExpired = expiresAt.before(Date())
+                    if (!isExpired) {
+                        val userEmail = principal.payload.getClaim("email").toString()
+                        val view = call.receive<LikeAndViewSchema>()
+                        if (userEmail == view.userId) {
+                            mediaService.view(view)
+                            call.respond(HttpStatusCode.Created, "Viewed successfully")
+                        } else {
+                            call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
+                        }
+                    } else {
+                        call.respond(HttpStatusCode.Unauthorized, "Token expired")
+                    }
+                } ?: run {
+                    call.respond(HttpStatusCode.Unauthorized, "Unauthorized")
                 }
             }
         }

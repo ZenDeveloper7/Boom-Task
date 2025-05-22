@@ -9,6 +9,7 @@ class MainApp : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        SharedPreferenceHelper.init(this)
         if (BuildConfig.DEBUG) {
             plant(DebugTree())
         }
