@@ -2,11 +2,13 @@ package com.zen.boom.task.network
 
 import com.google.gson.JsonObject
 import com.zen.boom.task.model.VideoModel
+import retrofit2.Call
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface Apis {
 
@@ -20,7 +22,7 @@ interface Apis {
     suspend fun uploadVideo(@Body body: VideoModel): Response<JsonObject>
 
     @GET("/videos")
-    suspend fun getVideos(): Response<JsonObject>
+    fun getVideos(@Query("page") page: Int): Call<List<VideoModel>>
 
     @POST("/like/{id}")
     suspend fun like(@Path("id") id: String): Response<JsonObject>

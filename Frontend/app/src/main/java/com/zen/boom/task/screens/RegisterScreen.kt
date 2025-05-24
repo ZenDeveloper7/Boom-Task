@@ -48,18 +48,17 @@ fun RegisterScreen(
     var password by remember { mutableStateOf("") }
     val context = LocalContext.current
 
-    val loginResponse by viewModel.loginMutableStateFlow.collectAsState()
+    val registerResponse by viewModel.registerMutableStateFlow.collectAsState()
 
-    LaunchedEffect(loginResponse) {
-        if (loginResponse is Resource.Loading) {
+    LaunchedEffect(registerResponse) {
+        if (registerResponse is Resource.Loading) {
             //Loading
-        } else if (loginResponse is Resource.Success) {
-            val response = (loginResponse as Resource.Success).data
-            Timber.d("Login response: $response")
-            Toast.makeText(context, "Login successful", Toast.LENGTH_SHORT).show()
-            navController.navigate("home")
-        } else if (loginResponse is Resource.Error) {
-            val errorMessage = (loginResponse as Resource.Error).message
+        } else if (registerResponse is Resource.Success) {
+            val response = (registerResponse as Resource.Success).data
+            Toast.makeText(context, "Registered Successfully", Toast.LENGTH_SHORT).show()
+            navController.navigate("login")
+        } else if (registerResponse is Resource.Error) {
+            val errorMessage = (registerResponse as Resource.Error).message
             Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
         }
     }

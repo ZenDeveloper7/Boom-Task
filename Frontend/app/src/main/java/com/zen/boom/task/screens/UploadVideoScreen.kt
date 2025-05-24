@@ -42,6 +42,7 @@ import androidx.navigation.NavController
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
 import com.google.gson.JsonObject
+import com.zen.boom.task.Session
 import com.zen.boom.task.model.Metadata
 import com.zen.boom.task.model.VideoModel
 import com.zen.boom.task.network.Resource
@@ -168,6 +169,7 @@ fun UploadVideoScreen(
                                                 isUploading = false
                                                 videoViewModel.uploadVideo(
                                                     VideoModel(
+                                                        id = null,
                                                         title = title,
                                                         videoUrl = downloadUrl!!,
                                                         thumbnailUrl = thumbnailUrl!!,
@@ -175,7 +177,7 @@ fun UploadVideoScreen(
                                                             uploadedAt = System.currentTimeMillis(),
                                                             likes = emptyList(),
                                                             views = emptyList(),
-                                                            uploadedBy = ""
+                                                            uploadedBy = Session.getUserId() ?: ""
                                                         )
                                                     )
                                                 )
@@ -206,20 +208,7 @@ fun UploadVideoScreen(
                         .fillMaxWidth()
                         .align(Alignment.BottomCenter),
                     onClick = {
-//                        launcher.launch("video/*")
-                        videoViewModel.uploadVideo(
-                            VideoModel(
-                                title = "First Video",
-                                videoUrl = "https://firebasestorage.googleapis.com/v0/b/boom-task.firebasestorage.app/o/videos%2F6b4edbea-c9b7-4f19-b467-e624e7120469.mp4?alt=media&token=8633fea2-3be9-42e9-9b7a-ef7061a55801",
-                                thumbnailUrl = "https://firebasestorage.googleapis.com/v0/b/boom-task.firebasestorage.app/o/thumbnails%2Fea9f8a39-5f2d-479f-894a-4ac130ca8273.jpg?alt=media&token=7919a40f-20e0-4cb5-a138-817d19745b76",
-                                metadata = Metadata(
-                                    uploadedAt = 1747916689003,
-                                    likes = emptyList(),
-                                    views = emptyList(),
-                                    uploadedBy = ""
-                                )
-                            )
-                        )
+                        launcher.launch("video/*")
                     }) {
                     Text("Select Video")
                 }

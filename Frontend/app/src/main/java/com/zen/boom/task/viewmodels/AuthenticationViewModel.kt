@@ -4,10 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.JsonObject
 import com.zen.boom.task.Session
+import com.zen.boom.task.model.CryptoUtil
 import com.zen.boom.task.network.Resource
 import com.zen.boom.task.network.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import javax.crypto.Cipher
+import javax.crypto.Cipher.SECRET_KEY
+import javax.crypto.spec.SecretKeySpec
 
 class AuthenticationViewModel : ViewModel() {
 
@@ -23,7 +27,7 @@ class AuthenticationViewModel : ViewModel() {
             val body = JsonObject().apply {
                 addProperty("email", email)
                 addProperty("name", name)
-                addProperty("password", password)
+                addProperty("password", CryptoUtil.encrypt(password))
             }
             try {
                 val response = RetrofitClient.apiService.register(body)
@@ -49,7 +53,7 @@ class AuthenticationViewModel : ViewModel() {
             _loginMutableStateFlow.value = Resource.Loading()
             val body = JsonObject().apply {
                 addProperty("email", email)
-                addProperty("password", password)
+                addProperty("password", CryptoUtil.encrypt(password))
             }
             try {
                 val request = RetrofitClient.apiService.login(body)

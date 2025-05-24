@@ -3,6 +3,7 @@
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">192.168.0.118</domain>
         <domain includeSubdomains="true">192.168.4.58</domain>
+        <domain includeSubdomains="true">192.168.0.127</domain>
         <domain includeSubdomains="true">commondatastorage.googleapis.com</domain>
     </domain-config>
 </network-security-config>

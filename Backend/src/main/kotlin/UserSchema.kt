@@ -11,7 +11,7 @@ import org.bson.Document
 import org.bson.types.ObjectId
 
 @Serializable
-data class UserSchema(val name: String, val email: String, val password: String) {
+data class UserSchema(val id: String, val name: String, val email: String, val password: String) {
     fun toDocument(): Document = Document.parse(Json.encodeToString(this))
 
     companion object {
@@ -20,6 +20,18 @@ data class UserSchema(val name: String, val email: String, val password: String)
         fun fromDocument(document: Document): UserSchema = json.decodeFromString(document.toJson())
     }
 }
+
+@Serializable
+data class RegisterSchema(val name: String, val email: String, val password: String) {
+    fun toDocument(): Document = Document.parse(Json.encodeToString(this))
+
+    companion object {
+        private val json = Json { ignoreUnknownKeys = true }
+
+        fun fromDocument(document: Document): RegisterSchema = json.decodeFromString(document.toJson())
+    }
+}
+
 @Serializable
 data class LoginSchema(val email: String, val password: String) {
     fun toDocument(): Document = Document.parse(Json.encodeToString(this))
@@ -27,38 +39,26 @@ data class LoginSchema(val email: String, val password: String) {
     companion object {
         private val json = Json { ignoreUnknownKeys = true }
 
-        fun fromDocument(document: Document): UserSchema = json.decodeFromString(document.toJson())
+        fun fromDocument(document: Document): LoginSchema = json.decodeFromString(document.toJson())
     }
 }
 
 class UserService(database: MongoDatabase) {
-    var collection: MongoCollection<Document>
+    private var collection: MongoCollection<Document>
 
     init {
         database.createCollection("users")
         collection = database.getCollection("users")
     }
 
-    suspend fun findByEmail(email: String): UserSchema? = withContext(Dispatchers.IO) {
-        collection.find(Filters.eq("email", email)).first()?.let(UserSchema::fromDocument)
+    suspend fun findByEmail(email: String): String? = withContext(Dispatchers.IO) {
+        collection.find(Filters.eq("email", email)).first()?.getObjectId("_id")?.toHexString()
     }
 
-    suspend fun create(car: UserSchema): String = withContext(Dispatchers.IO) {
+    suspend fun create(car: RegisterSchema): String = withContext(Dispatchers.IO) {
         val doc = car.toDocument()
         collection.insertOne(doc)
         doc["_id"].toString()
-    }
-
-    suspend fun read(id: String): UserSchema? = withContext(Dispatchers.IO) {
-        collection.find(Filters.eq("_id", ObjectId(id))).first()?.let(UserSchema::fromDocument)
-    }
-
-    suspend fun update(id: String, car: UserSchema): Document? = withContext(Dispatchers.IO) {
-        collection.findOneAndReplace(Filters.eq("_id", ObjectId(id)), car.toDocument())
-    }
-
-    suspend fun delete(id: String): Document? = withContext(Dispatchers.IO) {
-        collection.findOneAndDelete(Filters.eq("_id", ObjectId(id)))
     }
 }
 
